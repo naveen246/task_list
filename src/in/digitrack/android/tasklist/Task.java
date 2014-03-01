@@ -43,4 +43,9 @@ public class Task {
 	public void setDone(boolean done) {
 		mDone = done;
 	}
+	
+	@Override
+	public String toString() {
+		return mTitle;
+	}
 }
