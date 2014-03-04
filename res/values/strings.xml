@@ -8,5 +8,10 @@
     <string name="task_done_label">Done?</string>
     <string name="tasks_title">Tasks</string>
     <string name="date_picker_title">Task Deadline:</string>
+    <string name="new_task">New Task</string>
+	<string name="show_subtitle">Show Subtitle</string>
+	<string name="hide_subtitle">Hide Subtitle</string>
+	<string name="subtitle">Organize your tasks.</string>
+	<string name="delete_task">Delete</string>
 
 </resources>

@@ -13,12 +13,6 @@ public class Tasks {
 	private Tasks(Context appContext) {
 		mAppContext = appContext;
 		mTasks = new ArrayList<Task>();
-		for(int i = 0; i < 50; i++) {
-			Task t = new Task();
-			t.setTitle("Task #" + i);
-			t.setDone(i%2 == 0);
-			mTasks.add(t);
-		}
 	}
 	
 	public static Tasks get(Context c) {
@@ -26,6 +20,10 @@ public class Tasks {
 			sTasks = new Tasks(c.getApplicationContext());
 		}
 		return sTasks;
+	}
+	
+	public void addTask(Task t) {
+		mTasks.add(t);
 	}
 	
 	public ArrayList<Task> getTasks() {

@@ -2,10 +2,14 @@ package in.digitrack.android.tasklist;
 
 import java.util.ArrayList;
 
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.format.DateFormat;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -19,6 +23,7 @@ public class TaskListFragment extends ListFragment {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		setHasOptionsMenu(true);
 		getActivity().setTitle(R.string.tasks_title);
 		mTasks = Tasks.get(getActivity()).getTasks();
 		
@@ -39,6 +44,31 @@ public class TaskListFragment extends ListFragment {
 	public void onResume() {
 		super.onResume();
 		((TaskAdapter)getListAdapter()).notifyDataSetChanged();
+	}
+	
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		super.onCreateOptionsMenu(menu, inflater);
+		inflater.inflate(R.menu.fragment_task_list, menu);
+	}
+	
+	@TargetApi(11)
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch(item.getItemId()) {
+			case R.id.menu_item_new_task:
+				Task t = new Task();
+				Tasks.get(getActivity()).addTask(t);
+				Intent i = new Intent(getActivity(), TaskPagerActivity.class);
+				i.putExtra(TaskFragment.EXTRA_TASK_ID, t.getId());
+				startActivityForResult(i, 0);
+				return true;
+			case R.id.menu_item_show_subtitle:
+				getActivity().getActionBar().setSubtitle(R.string.subtitle);
+				return true;
+			default:
+				return 	super.onOptionsItemSelected(item);
+		}
 	}
 	
 	private class TaskAdapter extends ArrayAdapter<Task> {
