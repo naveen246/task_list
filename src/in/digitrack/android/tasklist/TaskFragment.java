@@ -6,8 +6,11 @@ import java.util.UUID;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.NavUtils;
@@ -15,8 +18,11 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -29,9 +35,13 @@ public class TaskFragment extends Fragment {
 	private EditText mTitleField;
 	private Button mDateButton;
 	private CheckBox mDoneCheckBox;
+	private Button mAssigneeButton;
+	private Button mailToButton;
+	
 	public static final String EXTRA_TASK_ID = "in.digitrack.android.tasklist.task_id";
 	private static final String DIALOG_DATE = "date";
 	private static final int REQUEST_DATE = 0;
+	private static final int REQUEST_CONTACT = 1;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -47,9 +57,9 @@ public class TaskFragment extends Fragment {
 		View v = inflater.inflate(R.layout.fragment_task, parent, false);
 		
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) { 
-				if(NavUtils.getParentActivityName(getActivity()) != null) {
-					getActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
-				}
+			if(NavUtils.getParentActivityName(getActivity()) != null) {
+				getActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
+			}
 		}
 		
 		mTitleField = (EditText)v.findViewById(R.id.task_title);
@@ -80,13 +90,52 @@ public class TaskFragment extends Fragment {
 				mTask.setDone(isDone);
 			}
 		});
+		
+		mAssigneeButton = (Button)v.findViewById(R.id.assign_task_to_button);
+		mAssigneeButton.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View arg0) {
+				Intent i = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+				startActivityForResult(i, REQUEST_CONTACT);
+			}
+		});
+		
+		if(mTask.getAssignee() != null) {
+			mAssigneeButton.setText(mTask.getAssignee());
+		}
+		
+		mailToButton = (Button)v.findViewById(R.id.mail_assignee_button);
+		mailToButton.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View V) {
+				Intent i = new Intent(Intent.ACTION_SEND);
+				i.setType("text/plain");
+				i.putExtra(Intent.EXTRA_TEXT, getTaskReport());
+				i.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.task_report_subject));
+				i = Intent.createChooser(i, getString(R.string.mail_to_assignee));
+				startActivity(i);
+			}
+		});
+		
 		return v;
+	}
+	
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		super.onCreateOptionsMenu(menu, inflater);
+		inflater.inflate(R.menu.fragment_task_menu, menu);
 	}
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch(item.getItemId()) {
 			case android.R.id.home:
+				if(NavUtils.getParentActivityName(getActivity()) != null) {
+					NavUtils.navigateUpFromSameTask(getActivity());
+				}
+				return true;
+			case R.id.menu_item_delete_this_task:
+				Tasks.get(getActivity()).deleteTask(mTask);
 				if(NavUtils.getParentActivityName(getActivity()) != null) {
 					NavUtils.navigateUpFromSameTask(getActivity());
 				}
@@ -101,6 +150,12 @@ public class TaskFragment extends Fragment {
 	}
 	
 	@Override
+	public void onPause() {
+		super.onPause();
+		Tasks.get(getActivity()).saveTasks();
+	}
+	
+	@Override
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if(resultCode != Activity.RESULT_OK) {
 			return;
@@ -109,6 +164,23 @@ public class TaskFragment extends Fragment {
 			Date date = (Date)data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
 			mTask.setDate(date);
 			updateDate();
+		} else if(requestCode == REQUEST_CONTACT) {
+			Uri contactUri = data.getData();
+			// Specify which fields you want your query to return values for.
+			String[] queryFields = new String[] {
+				ContactsContract.Contacts.DISPLAY_NAME
+			};
+			// Perform your query - the contactUri is like a "where" clause here
+			Cursor c = getActivity().getContentResolver().query(contactUri, queryFields, null, null, null);
+			if(c.getCount() == 0) {
+				c.close();
+				return;
+			}
+			c.moveToFirst();
+			String assignee = c.getString(0);
+			mTask.setAssignee(assignee);
+			mAssigneeButton.setText(assignee);
+			c.close();
 		}
 	}
 	
@@ -120,4 +192,28 @@ public class TaskFragment extends Fragment {
 		fragment.setArguments(args);
 		return fragment;
 	}
+	
+	public String getTaskReport() {
+		String doneString = null;
+		if(mTask.isDone()) {
+			doneString = getString(R.string.task_report_done);
+		} else {
+			doneString = getString(R.string.task_report_pending);
+		}
+		String dateFormat = "EEE, MMM dd";
+		String dateString = DateFormat.format(dateFormat, mTask.getDate()).toString();
+		String assignee = mTask.getAssignee();
+		if(assignee == null) {
+			assignee = getString(R.string.task_report_no_assignee);
+		} else {
+			assignee = getString(R.string.task_report_assignee, assignee);
+		}
+		String report = getString(R.string.task_report,
+		        mTask.getTitle(), dateString, doneString, assignee);
+
+		return report;
+	}
 }
+
+
+

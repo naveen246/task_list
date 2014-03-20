@@ -37,4 +37,20 @@
         android:layout_marginRight="16dp"
         android:text="@string/task_done_label" />
     
+    <Button
+        android:id="@+id/assign_task_to_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:text="@string/assign_task_to" />
+    
+    <Button
+        android:id="@+id/mail_assignee_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:text="@string/mail_to_assignee" />
+    
 </LinearLayout>

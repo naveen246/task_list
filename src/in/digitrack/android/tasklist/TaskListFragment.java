@@ -4,14 +4,21 @@ import java.util.ArrayList;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.format.DateFormat;
+import android.view.ActionMode;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView.MultiChoiceModeListener;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.ListView;
@@ -19,6 +26,7 @@ import android.widget.TextView;
 
 public class TaskListFragment extends ListFragment {
 	private ArrayList<Task> mTasks;
+	private boolean mSubtitleVisible = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -29,6 +37,68 @@ public class TaskListFragment extends ListFragment {
 		
 		TaskAdapter adapter = new TaskAdapter(mTasks);
 		setListAdapter(adapter);
+		setRetainInstance(true);
+		mSubtitleVisible = false;
+	}
+	
+	@TargetApi(11)
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+		View v = super.onCreateView(inflater, parent, savedInstanceState);
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+			if(mSubtitleVisible) {
+				getActivity().getActionBar().setSubtitle(R.string.subtitle);
+			}
+		}
+		ListView listView = (ListView)v.findViewById(android.R.id.list);
+		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+			// Use floating context menus on Froyo and Gingerbread
+			registerForContextMenu(listView);
+		} else {
+			// Use contextual action bar on Honeycomb and higher
+			listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+			listView.setMultiChoiceModeListener(new MultiChoiceModeListener() {
+
+				@Override
+				public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+					switch(item.getItemId()) {
+						case R.id.menu_item_delete_task:
+							TaskAdapter adapter = (TaskAdapter)getListAdapter();
+							Tasks tasks = Tasks.get(getActivity());
+							for(int i = adapter.getCount(); i >= 0; i--) {
+								if(getListView().isItemChecked(i)) {
+									tasks.deleteTask(adapter.getItem(i));
+								}
+							}
+							mode.finish();
+							adapter.notifyDataSetChanged();
+							return true;
+						default:
+							return false;
+					}
+				}
+
+				@Override
+				public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+					MenuInflater inflater = mode.getMenuInflater();
+					inflater.inflate(R.menu.task_list_item_context, menu);
+					return true;
+				}
+
+				@Override
+				public void onDestroyActionMode(ActionMode arg0) { }
+
+				@Override
+				public boolean onPrepareActionMode(ActionMode arg0, Menu arg1) { 
+					return false;
+				}
+
+				@Override
+				public void onItemCheckedStateChanged(ActionMode arg0,
+						int arg1, long arg2, boolean arg3) { }
+			});
+		}
+		return v;
 	}
 	
 	@Override
@@ -50,6 +120,10 @@ public class TaskListFragment extends ListFragment {
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 		super.onCreateOptionsMenu(menu, inflater);
 		inflater.inflate(R.menu.fragment_task_list, menu);
+		MenuItem showSubTitle = menu.findItem(R.id.menu_item_show_subtitle);
+		if(mSubtitleVisible && showSubTitle != null) {
+			showSubTitle.setTitle(R.string.hide_subtitle);	
+		}
 	}
 	
 	@TargetApi(11)
@@ -64,10 +138,39 @@ public class TaskListFragment extends ListFragment {
 				startActivityForResult(i, 0);
 				return true;
 			case R.id.menu_item_show_subtitle:
-				getActivity().getActionBar().setSubtitle(R.string.subtitle);
+				if(getActivity().getActionBar().getSubtitle() == null) {
+					getActivity().getActionBar().setSubtitle(R.string.subtitle);
+					mSubtitleVisible = true;
+					item.setTitle(R.string.hide_subtitle);
+				} else {
+					getActivity().getActionBar().setSubtitle(null);
+					mSubtitleVisible = false;
+					item.setTitle(R.string.show_subtitle);
+				}
 				return true;
 			default:
 				return 	super.onOptionsItemSelected(item);
+		}
+	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		getActivity().getMenuInflater().inflate(R.menu.task_list_item_context, menu);
+	}
+	
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterContextMenuInfo info = (AdapterContextMenuInfo)item.getMenuInfo();
+		int position = info.position;
+		TaskAdapter adapter = (TaskAdapter)getListAdapter();
+		Task task = adapter.getItem(position);
+		switch(item.getItemId()) {
+			case R.id.menu_item_delete_task:
+				Tasks.get(getActivity()).deleteTask(task);
+				adapter.notifyDataSetChanged();	
+				return true;
+			default:
+				return super.onContextItemSelected(item);
 		}
 	}
 	

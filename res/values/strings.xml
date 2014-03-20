@@ -13,5 +13,17 @@
 	<string name="hide_subtitle">Hide Subtitle</string>
 	<string name="subtitle">Organize your tasks.</string>
 	<string name="delete_task">Delete</string>
+	<string name="assign_task_to">Assign task to..</string>
+	<string name="mail_to_assignee">Send mail to assignee</string>
+	
+	<string name="task_report">%1$s!
+    	Task to be done before %2$s. %3$s, and %4$s
+	</string>
+	<string name="task_report_done">The task is done</string>
+	<string name="task_report_pending">The task is not done</string>
+	<string name="task_report_no_assignee">There is no assignee.</string>
+	<string name="task_report_assignee">The assignee is %s.</string>
+	<string name="task_report_subject">TaskList task Report</string>
+	<string name="send_report">Send task report via</string>
 
 </resources>
